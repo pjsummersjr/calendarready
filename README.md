@@ -1,6 +1,6 @@
-## spx-search-react
-
-This is where you include your web part docs.
+## CalendarReady SPFx Web Part
+### Overview
+This is a web part built using the new SharePoint Framework. It pulls the current calendar appointments and when a user selects one of those appointments, the web part will pull documents "related" to that meeting. The logic which defines "related" is still being designed but it will lean heavily on the insights layer from the Microsoft Graph.
 
 ### Building the code
 
