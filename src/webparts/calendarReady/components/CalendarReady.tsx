@@ -22,7 +22,7 @@ import {
 import styles from '../CalendarReady.module.scss';
 import { ICalendarReadyWebPartProps } from '../ICalendarReadyWebPartProps';
 import { ICalendarItem } from '../services/CalendarService';
-import { SPResult } from '../services/OfficeSearchService';
+import { SharePointSearchClient, SPResults, SPResult } from '../services/OfficeSearchService';
 
 
 
@@ -31,7 +31,7 @@ export interface ICalendarReadyProps extends ICalendarReadyWebPartProps {
 
 export interface ICalendarState {
   items: ICalendarItem[],
-  results: SPResult[]
+  results?: SPResult[]
 }
 
 export default class CalendarReady extends React.Component<ICalendarReadyProps, ICalendarState> {
@@ -47,6 +47,7 @@ export default class CalendarReady extends React.Component<ICalendarReadyProps, 
 
   public componentDidMount(): void {
     this._getCalendarItems();
+    this._getSearchResults();
   }
 
   public componentDidUpdate(): void {
@@ -65,7 +66,6 @@ export default class CalendarReady extends React.Component<ICalendarReadyProps, 
               <div className='ms-ListBasicExample-itemCell'>
                   <div className='ms-ListBasicExample-itemContent'>
                     <div className='ms-ListBasicExample-itemName ms-font-xl'>{ item.Subject }</div>
-                    <div className='ms-ListBasicExample-itemIndex'>{ `Item ${ index }` }</div>
                     <div className='ms-ListBasicExample-itemDesc ms-font-s'>{ item.Organizer.DisplayName }</div>
                   </div>
               </div>
@@ -85,13 +85,15 @@ export default class CalendarReady extends React.Component<ICalendarReadyProps, 
   }
 
   private _getSearchResults(): void {
-    this.props.httpClient.get(`${this.props.siteUrl}/_api/search/query?querytext='*'`, {
-      headers: {
-        'Accept': 'application/json;odata=nometadata',
-        'odata-version': ''
-      }
-    })
-    .then((response: Response) => {
+
+    let searchClient: SharePointSearchClient = new SharePointSearchClient();
+
+    searchClient.Search(this.props.httpClient, this.props.siteUrl, "*")
+    .then((response: SPResults) => {
+      this.setState({
+        items: this.state.items,
+        results: response.value
+      });
     });
   }
 
@@ -131,14 +133,15 @@ export default class CalendarReady extends React.Component<ICalendarReadyProps, 
       });
     }
     this.setState({
-        items: calEntries
+        items: calEntries,
+        results: this.state.results
     });
   }
 
   protected get graphHttpClientOptions(): IHttpClientOptions {
     return {
       headers: {
-        'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJub25jZSI6IkFRQUJBQUFBQUFEUk5ZUlEzZGhSU3JtLTRLLWFkcENKby1IV3NpeFU3RFhwcGxmX2ZNWlFoSXozc1loQ194SXc1TXh6Smc3b0lOUGVSV09OeXBZeXRDYmJQRjZhY3N5ZDBmcG9TZ1Y4V3hWSkdjM1dPNk1Rc2lBQSIsImFsZyI6IlJTMjU2IiwieDV0IjoiWWJSQVFSWWNFX21vdFdWSktIcndMQmJkXzlzIiwia2lkIjoiWWJSQVFSWWNFX21vdFdWSktIcndMQmJkXzlzIn0.eyJhdWQiOiJodHRwczovL2dyYXBoLm1pY3Jvc29mdC5jb20iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC80ZTlmNTQ2Ny01MjczLTQ3MGUtOWQwZi0wYTM5NmQ3YmZkNjcvIiwiaWF0IjoxNDc1MjA1MTI1LCJuYmYiOjE0NzUyMDUxMjUsImV4cCI6MTQ3NTIwOTAyNSwiYWNyIjoiMSIsImFtciI6WyJwd2QiXSwiYXBwX2Rpc3BsYXluYW1lIjoiU1BYMSIsImFwcGlkIjoiOGYyYTgwMDQtN2IxMi00ZjI0LThiNjAtNDRlZjhjMzAxOTk1IiwiYXBwaWRhY3IiOiIxIiwiZmFtaWx5X25hbWUiOiJTdW1tZXJzIiwiZ2l2ZW5fbmFtZSI6IlBhdWwiLCJpcGFkZHIiOiI3MS4yMzMuMTE1LjE2MSIsIm5hbWUiOiJQYXVsIFN1bW1lcnMiLCJvaWQiOiIyNDYyMTBjNy02NWJmLTRhOTUtYjBhZS1iMzAxZmM1Y2YwNzYiLCJwbGF0ZiI6IldpbiIsInB1aWQiOiIxMDAzN0ZGRTlBMDQ5NjdBIiwic2NwIjoiQ2FsZW5kYXJzLlJlYWQgQ2FsZW5kYXJzLlJlYWQuU2hhcmVkIENhbGVuZGFycy5SZWFkV3JpdGUgQ2FsZW5kYXJzLlJlYWRXcml0ZS5TaGFyZWQgQ29udGFjdHMuUmVhZCBDb250YWN0cy5SZWFkLlNoYXJlZCBDb250YWN0cy5SZWFkV3JpdGUgQ29udGFjdHMuUmVhZFdyaXRlLlNoYXJlZCBEaXJlY3RvcnkuQWNjZXNzQXNVc2VyLkFsbCBEaXJlY3RvcnkuUmVhZC5BbGwgRGlyZWN0b3J5LlJlYWRXcml0ZS5BbGwgZW1haWwgRmlsZXMuUmVhZCBGaWxlcy5SZWFkLkFsbCBGaWxlcy5SZWFkLlNlbGVjdGVkIEZpbGVzLlJlYWRXcml0ZSBGaWxlcy5SZWFkV3JpdGUuQWxsIEZpbGVzLlJlYWRXcml0ZS5BcHBGb2xkZXIgRmlsZXMuUmVhZFdyaXRlLlNlbGVjdGVkIEdyb3VwLlJlYWQuQWxsIEdyb3VwLlJlYWRXcml0ZS5BbGwgSWRlbnRpdHlSaXNrRXZlbnQuUmVhZC5BbGwgTWFpbC5SZWFkIE1haWwuUmVhZC5TaGFyZWQgTWFpbC5SZWFkV3JpdGUgTWFpbC5SZWFkV3JpdGUuU2hhcmVkIE1haWwuU2VuZCBNYWlsLlNlbmQuU2hhcmVkIE1haWxib3hTZXR0aW5ncy5SZWFkV3JpdGUgTm90ZXMuQ3JlYXRlIE5vdGVzLlJlYWQgTm90ZXMuUmVhZC5BbGwgTm90ZXMuUmVhZFdyaXRlIE5vdGVzLlJlYWRXcml0ZS5BbGwgTm90ZXMuUmVhZFdyaXRlLkNyZWF0ZWRCeUFwcCBvZmZsaW5lX2FjY2VzcyBvcGVuaWQgUGVvcGxlLlJlYWQgcHJvZmlsZSBTaXRlcy5SZWFkLkFsbCBUYXNrcy5SZWFkIFRhc2tzLlJlYWQuU2hhcmVkIFRhc2tzLlJlYWRXcml0ZSBUYXNrcy5SZWFkV3JpdGUuU2hhcmVkIFVzZXIuUmVhZCBVc2VyLlJlYWQuQWxsIFVzZXIuUmVhZEJhc2ljLkFsbCBVc2VyLlJlYWRXcml0ZSBVc2VyLlJlYWRXcml0ZS5BbGwiLCJzdWIiOiIyWUlPdnFpRWx0X2dNUzlGU0NpMlpxVGF2NzFmOW1BdmtnVnhPS1ItVGlnIiwidGlkIjoiNGU5ZjU0NjctNTI3My00NzBlLTlkMGYtMGEzOTZkN2JmZDY3IiwidW5pcXVlX25hbWUiOiJwYXVsQHBqc3VtbWVyc2pyZGV2Lm9ubWljcm9zb2Z0LmNvbSIsInVwbiI6InBhdWxAcGpzdW1tZXJzanJkZXYub25taWNyb3NvZnQuY29tIiwidmVyIjoiMS4wIn0.OtfzStOv-a3-zkcQ_aB-T1f-cE_SKLxdsJw2EGZZdkAJtOLjiOasfvYW4fYS6f3U6hNi5P6xXoTcJsbi_pBrAxgm0ZKOwvgfuY_erED6HVXFmjEGqvnev-iztCTV01uBw2XwNYsS0qXOQxBGrHrqWRTkvhcFFxqQCwp8g0q7YJ8gXk-2mPfQ4Di_cj4aSKneXi6Sd3jiKbMp33xdsbSKGW9sFKkPvAlQRYWfKA1ISbDUQU_mYZ7qsAkqObm0PidhOyLFJeWa-5fEQYIIzdKeESYEODSix2FLZSmtmOljq-eukEp3RXEsjuEmdUlKNvedNMP0HtB0Av-Ey_kKTBJUdw'
+        'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJub25jZSI6IkFRQUJBQUFBQUFEUk5ZUlEzZGhSU3JtLTRLLWFkcENKZElfZVVwTlA2NzBkaTVkNENIS1k1VEZPV2tXLUtCUVN6RVhia2hlOEljOXhldHFFdHpfd0tSd01GN3BjRThTLUZXV1NmSzZ4cm5XLXpGOWg5dDdsVGlBQSIsImFsZyI6IlJTMjU2IiwieDV0IjoiSTZvQnc0VnpCSE9xbGVHclYyQUpkQTVFbVhjIiwia2lkIjoiSTZvQnc0VnpCSE9xbGVHclYyQUpkQTVFbVhjIn0.eyJhdWQiOiJodHRwczovL2dyYXBoLm1pY3Jvc29mdC5jb20iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC80ZTlmNTQ2Ny01MjczLTQ3MGUtOWQwZi0wYTM5NmQ3YmZkNjcvIiwiaWF0IjoxNDc1MjYxOTA2LCJuYmYiOjE0NzUyNjE5MDYsImV4cCI6MTQ3NTI2NTgwNiwiYWNyIjoiMSIsImFtciI6WyJwd2QiXSwiYXBwX2Rpc3BsYXluYW1lIjoiU1BYMSIsImFwcGlkIjoiOGYyYTgwMDQtN2IxMi00ZjI0LThiNjAtNDRlZjhjMzAxOTk1IiwiYXBwaWRhY3IiOiIxIiwiZmFtaWx5X25hbWUiOiJTdW1tZXJzIiwiZ2l2ZW5fbmFtZSI6IlBhdWwiLCJpcGFkZHIiOiIxNjcuMjIwLjE0OC4xOTMiLCJuYW1lIjoiUGF1bCBTdW1tZXJzIiwib2lkIjoiMjQ2MjEwYzctNjViZi00YTk1LWIwYWUtYjMwMWZjNWNmMDc2IiwicGxhdGYiOiJXaW4iLCJwdWlkIjoiMTAwMzdGRkU5QTA0OTY3QSIsInNjcCI6IkNhbGVuZGFycy5SZWFkIENhbGVuZGFycy5SZWFkLlNoYXJlZCBDYWxlbmRhcnMuUmVhZFdyaXRlIENhbGVuZGFycy5SZWFkV3JpdGUuU2hhcmVkIENvbnRhY3RzLlJlYWQgQ29udGFjdHMuUmVhZC5TaGFyZWQgQ29udGFjdHMuUmVhZFdyaXRlIENvbnRhY3RzLlJlYWRXcml0ZS5TaGFyZWQgRGlyZWN0b3J5LkFjY2Vzc0FzVXNlci5BbGwgRGlyZWN0b3J5LlJlYWQuQWxsIERpcmVjdG9yeS5SZWFkV3JpdGUuQWxsIGVtYWlsIEZpbGVzLlJlYWQgRmlsZXMuUmVhZC5BbGwgRmlsZXMuUmVhZC5TZWxlY3RlZCBGaWxlcy5SZWFkV3JpdGUgRmlsZXMuUmVhZFdyaXRlLkFsbCBGaWxlcy5SZWFkV3JpdGUuQXBwRm9sZGVyIEZpbGVzLlJlYWRXcml0ZS5TZWxlY3RlZCBHcm91cC5SZWFkLkFsbCBHcm91cC5SZWFkV3JpdGUuQWxsIElkZW50aXR5Umlza0V2ZW50LlJlYWQuQWxsIE1haWwuUmVhZCBNYWlsLlJlYWQuU2hhcmVkIE1haWwuUmVhZFdyaXRlIE1haWwuUmVhZFdyaXRlLlNoYXJlZCBNYWlsLlNlbmQgTWFpbC5TZW5kLlNoYXJlZCBNYWlsYm94U2V0dGluZ3MuUmVhZFdyaXRlIE5vdGVzLkNyZWF0ZSBOb3Rlcy5SZWFkIE5vdGVzLlJlYWQuQWxsIE5vdGVzLlJlYWRXcml0ZSBOb3Rlcy5SZWFkV3JpdGUuQWxsIE5vdGVzLlJlYWRXcml0ZS5DcmVhdGVkQnlBcHAgb2ZmbGluZV9hY2Nlc3Mgb3BlbmlkIFBlb3BsZS5SZWFkIHByb2ZpbGUgU2l0ZXMuUmVhZC5BbGwgVGFza3MuUmVhZCBUYXNrcy5SZWFkLlNoYXJlZCBUYXNrcy5SZWFkV3JpdGUgVGFza3MuUmVhZFdyaXRlLlNoYXJlZCBVc2VyLlJlYWQgVXNlci5SZWFkLkFsbCBVc2VyLlJlYWRCYXNpYy5BbGwgVXNlci5SZWFkV3JpdGUgVXNlci5SZWFkV3JpdGUuQWxsIiwic3ViIjoiMllJT3ZxaUVsdF9nTVM5RlNDaTJacVRhdjcxZjltQXZrZ1Z4T0tSLVRpZyIsInRpZCI6IjRlOWY1NDY3LTUyNzMtNDcwZS05ZDBmLTBhMzk2ZDdiZmQ2NyIsInVuaXF1ZV9uYW1lIjoicGF1bEBwanN1bW1lcnNqcmRldi5vbm1pY3Jvc29mdC5jb20iLCJ1cG4iOiJwYXVsQHBqc3VtbWVyc2pyZGV2Lm9ubWljcm9zb2Z0LmNvbSIsInZlciI6IjEuMCJ9.BOvaXF-w8Kp5TO-yJ3fJzKt4DgaMPAvD5Hf5hbt9C4oJMEyLQjV422cFXiMfUxBFLKEjjfz4gzdAtGNjYwPgNB_khRm1XEXSZW9sMLDhml_D7M7qlYyaNKD8CfQ0WhdkFIrdk0Pjljkh4u49XHRlSMxNfwKWUFepY5x5FD5CcFzIVgd1frVFupqQWAejq9cThwUkT8VVFZ9G9GJ5qh_afcd7YrgW_6FtgNYqIEeVmx-y569RUS0nb9Joywxg2k9aTObQKPVqzHjLdshCrFRZx_aTa_NZkMiuPoH_CC4Eb2ksVtMZGvtiNKo_XxcmRPHvrApNdOAeHQae-GcIhcMFzA'
       }
     };
   }
