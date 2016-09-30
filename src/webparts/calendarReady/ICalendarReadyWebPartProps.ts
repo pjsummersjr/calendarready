@@ -1,11 +1,11 @@
 import { HttpClient } from '@microsoft/sp-client-base';
-import { ICalendarItem } from './entities/ICalendarItem';
+import { ICalendarItem } from './services/CalendarService';
 
 export interface IBasicWebPartProps {
-  httpClient: HttpClient
+  httpClient: HttpClient,
+  siteUrl: string
 }
 
 export interface ICalendarReadyWebPartProps extends IBasicWebPartProps {
-  items: ICalendarItem[];
 }
 

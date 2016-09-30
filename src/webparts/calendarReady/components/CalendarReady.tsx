@@ -12,12 +12,17 @@ import {
   FocusZoneDirection,
   List,
   ImageFit,
-  Label
+  Label,
+  DocumentCard,
+  DocumentCardActivity,
+  DocumentCardTitle,
+  IDocumentCardProps
 } from 'office-ui-fabric-react';
 
 import styles from '../CalendarReady.module.scss';
 import { ICalendarReadyWebPartProps } from '../ICalendarReadyWebPartProps';
-import { ICalendarItem } from '../entities/ICalendarItem';
+import { ICalendarItem } from '../services/CalendarService';
+import { SPResult } from '../services/OfficeSearchService';
 
 
 
@@ -25,7 +30,8 @@ export interface ICalendarReadyProps extends ICalendarReadyWebPartProps {
 }
 
 export interface ICalendarState {
-  items: ICalendarItem[]
+  items: ICalendarItem[],
+  results: SPResult[]
 }
 
 export default class CalendarReady extends React.Component<ICalendarReadyProps, ICalendarState> {
@@ -34,7 +40,8 @@ export default class CalendarReady extends React.Component<ICalendarReadyProps, 
     super();
 
     this.state = {
-      items: [] as ICalendarItem[]
+      items: [] as ICalendarItem[],
+      results: [] as SPResult[]
     };
   }
 
@@ -43,28 +50,49 @@ export default class CalendarReady extends React.Component<ICalendarReadyProps, 
   }
 
   public componentDidUpdate(): void {
-    //this._getCalendarItems();
+    //Do nothing for now
   }
 
   public render(): JSX.Element {
-    let { items } = this.state;
+    let { items, results } = this.state;
     return (
-      <FocusZone direction={ FocusZoneDirection.vertical} >
-        <Label>Upcoming Meetings</Label>
-        <List
-          items= { items }
-          onRenderCell={ (item, index) => (
-            <div className='ms-ListBasicExample-itemCell'>
-                <div className='ms-ListBasicExample-itemContent'>
-                  <div className='ms-ListBasicExample-itemName ms-font-xl'>{ item.Subject }</div>
-                  <div className='ms-ListBasicExample-itemIndex'>{ `Item ${ index }` }</div>
-                  <div className='ms-ListBasicExample-itemDesc ms-font-s'>{ item.Organizer.DisplayName }</div>
-                </div>
-            </div>
-          )}
-        />
-      </FocusZone>
+      <div>
+        <FocusZone direction={ FocusZoneDirection.vertical} >
+          <Label>Upcoming Meetings</Label>
+          <List
+            items= { items }
+            onRenderCell={ (item, index) => (
+              <div className='ms-ListBasicExample-itemCell'>
+                  <div className='ms-ListBasicExample-itemContent'>
+                    <div className='ms-ListBasicExample-itemName ms-font-xl'>{ item.Subject }</div>
+                    <div className='ms-ListBasicExample-itemIndex'>{ `Item ${ index }` }</div>
+                    <div className='ms-ListBasicExample-itemDesc ms-font-s'>{ item.Organizer.DisplayName }</div>
+                  </div>
+              </div>
+            )}
+          />
+        </FocusZone>
+        <FocusZone direction={ FocusZoneDirection.vertical }>
+          <Label>Related Documents</Label>
+          <List
+            items={ results }
+            onRenderCell={ (result) => (
+              <div>{result.Title}</div>
+            )} />
+        </FocusZone>
+      </div>
     );
+  }
+
+  private _getSearchResults(): void {
+    this.props.httpClient.get(`${this.props.siteUrl}/_api/search/query?querytext='*'`, {
+      headers: {
+        'Accept': 'application/json;odata=nometadata',
+        'odata-version': ''
+      }
+    })
+    .then((response: Response) => {
+    });
   }
 
   private _getCalendarItems(): void {

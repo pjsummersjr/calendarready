@@ -19,8 +19,8 @@ export default class CalendarReadyWebPart extends BaseClientSideWebPart<ICalenda
 
   public render(): void {
     const element: React.ReactElement<ICalendarReadyProps> = React.createElement(CalendarReady, {
-      items: null,
-      httpClient: this.context.httpClient
+      httpClient: this.context.httpClient,
+      siteUrl: this.context.pageContext.web.absoluteUrl
       //description: this.properties.description
     });
 
