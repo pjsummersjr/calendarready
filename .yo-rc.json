@@ -1,0 +1,7 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "libraryName": "spx-search-react",
+    "libraryId": "ac656f41-cf4c-4c97-8362-f1078fb7c676",
+    "framework": "react"
+  }
+}
