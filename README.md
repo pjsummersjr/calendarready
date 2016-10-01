@@ -30,3 +30,6 @@ gulp test - TODO
 gulp watch - TODO
 gulp build - TODO
 gulp deploy - TODO
+
+## DISCLAIMER
+No warranties for this code explicit or implied!
